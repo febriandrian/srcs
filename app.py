@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from flask_sqlalchemy import SQLAlchemy
 from models import db, User, Sekolah
+from datetime import datetime, date
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///srcs.db'
@@ -8,15 +8,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'rahasia'
 
 db.init_app(app)
-from flask import redirect, url_for
 
+# ==========================
+# REDIRECT BERANDA → LOGIN
+# ==========================
 @app.route('/')
 def index():
     return redirect(url_for('login'))
 
-# ====================
-# CREATE USER DEFAULT
-# ====================
+# ==========================
+# BUAT USER DEFAULT & DB
+# ==========================
 def create_data():
     db.create_all()
 
@@ -29,11 +31,18 @@ def create_data():
     if not User.query.filter_by(username='manager').first():
         db.session.add(User(username='manager', password='123', role='Manager'))
 
+    if not Sekolah.query.first():
+        db.session.add(Sekolah(
+            nama="SMK N 1 Pontianak",
+            kabupaten="Pontianak",
+            tanggal_kunjungan=date(2025, 9, 1)
+        ))
+
     db.session.commit()
 
-# ====================
-# ROUTE LOGIN
-# ====================
+# ==========================
+# ROUTE LOGIN & LOGOUT
+# ==========================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -42,7 +51,6 @@ def login():
             session['username'] = user.username
             session['role'] = user.role
 
-            # Arahkan berdasarkan role
             if user.role == 'PetugasSR':
                 return redirect('/safety-riding')
             elif user.role == 'PetugasHC':
@@ -56,14 +64,19 @@ def login():
 
     return render_template('login.html')
 
-# ====================
-# ROUTE PER ROLE
-# ====================
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# ==========================
+# ROUTE SESUAI ROLE
+# ==========================
 @app.route('/safety-riding')
 def safety_riding():
-    if 'role' not in session or session['role'] != 'PetugasSR':
+    if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
         return "Akses ditolak"
-    return render_template('safety_riding.html')
+    return render_template('safety_riding.html', role=session['role'])
 
 @app.route('/community')
 def community():
@@ -77,15 +90,56 @@ def dashboard():
         return "Akses ditolak"
     return render_template('dashboard.html')
 
+# ==========================
+# SEKOLAH - LIST & TAMBAH
+# ==========================
+@app.route('/safety-riding/sekolah')
+def list_sekolah():
+    if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
+        return "Akses ditolak"
+
+    sekolah_list = Sekolah.query.all()
+    return render_template('list_sekolah.html', sekolah_list=sekolah_list)
+@app.route('/safety-riding/sekolah/hapus/<int:id>', methods=['POST'])
+def hapus_sekolah(id):
+    if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
+        return "Akses ditolak"
+
+    sekolah = Sekolah.query.get_or_404(id)
+    db.session.delete(sekolah)
+    db.session.commit()
+
+    return redirect(url_for('list_sekolah'))
+
+@app.route('/safety-riding/sekolah/tambah', methods=['GET', 'POST'])
+def sekolah_tambah():
+    if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
+        return "Akses ditolak"
+
+    if request.method == 'POST':
+        nama = request.form['nama']
+        kabupaten = request.form['kabupaten']
+        tanggal_kunjungan = datetime.strptime(request.form['tanggal_kunjungan'], '%Y-%m-%d').date()
+
+        sekolah_baru = Sekolah(nama=nama, kabupaten=kabupaten, tanggal_kunjungan=tanggal_kunjungan)
+        db.session.add(sekolah_baru)
+        db.session.commit()
+        return redirect('/safety-riding/sekolah')
+
+    return render_template('tambah_sekolah.html')
+
+# ==========================
+# LAPORAN MANAGER
+# ==========================
 @app.route('/laporan')
 def laporan():
     if 'role' not in session or session['role'] != 'Manager':
         return "Akses ditolak"
     return render_template('laporan.html')
 
-# ====================
-# RUN SERVER
-# ====================
+# ==========================
+# JALANKAN SERVER
+# ==========================
 if __name__ == '__main__':
     with app.app_context():
         create_data()
