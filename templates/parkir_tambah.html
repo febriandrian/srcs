@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tambah Data Parkir - {{ sekolah.nama }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+  <h3 class="mb-4">Tambah Data Parkir — {{ sekolah.nama }}</h3>
+
+  <form method="POST" class="col-md-6">
+    <div class="mb-3">
+      <label class="form-label">Merek</label>
+      <select id="merek" name="merek" class="form-control" required>
+        <option value="" selected>— Pilih Merek —</option>
+        {% for b in brands %}
+          <option value="{{ b }}">{{ b }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Model</label>
+      <select id="model" name="model" class="form-control" required disabled>
+        <option value="">— Pilih Model —</option>
+      </select>
+      <div class="form-text">Model akan muncul sesuai merek yang dipilih.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Jumlah</label>
+      <input type="number" name="jumlah" min="1" class="form-control" required>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-success">Simpan</button>
+      <a href="{{ url_for('lihat_sekolah', sekolah_id=sekolah.id) }}" class="btn btn-secondary">Batal</a>
+    </div>
+  </form>
+</div>
+
+<!-- JS: populate model berdasarkan merek -->
+<script>
+  const BRAND_MODELS = {{ brand_models|tojson }};
+  const merekEl = document.getElementById('merek');
+  const modelEl = document.getElementById('model');
+
+  merekEl.addEventListener('change', () => {
+    const brand = merekEl.value;
+    modelEl.innerHTML = '<option value="">— Pilih Model —</option>';
+    if (!brand || !BRAND_MODELS[brand]) {
+      modelEl.disabled = true;
+      return;
+    }
+    BRAND_MODELS[brand].forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      modelEl.appendChild(opt);
+    });
+    modelEl.disabled = false;
+  });
+</script>
+</body>
+</html>
