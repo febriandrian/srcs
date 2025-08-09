@@ -1,98 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Input Motor Parkir – Petugas SR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Input Motor Parkir – Petugas Safety Riding</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    body{background:#f6f7fb}
-    .card-lite{border:0;border-radius:18px;box-shadow:0 12px 28px rgba(18,38,63,.06)}
-  </style>
 </head>
-<body>
-<div class="container py-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="mb-0">Input Motor Parkir – Petugas Safety Riding</h3>
-    <a href="/logout" class="btn btn-danger">Logout</a>
+<body class="bg-light">
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Input Motor Parkir – Petugas Safety Riding</h4>
+    <a href="/logout" class="btn btn-danger btn-sm">Logout</a>
   </div>
 
-  <div class="alert alert-success">
-    <i class="bi bi-shield-check me-1"></i>
-    Anda login sebagai <strong>Petugas Safety Riding</strong>. Silakan pilih sekolah dan input data parkir.
-  </div>
+  {% if msg %}
+    <div class="alert alert-warning">{{ msg }}</div>
+  {% endif %}
 
-  <div class="card card-lite">
+  <form method="POST" class="card shadow-sm">
     <div class="card-body">
-      <form method="POST" class="row g-3">
 
-        <!-- Pilih sekolah -->
-        <div class="col-12">
-          <label class="form-label">Sekolah</label>
-          <select name="sekolah_id" class="form-select" required>
-            <option value="">— Pilih Sekolah —</option>
-            {% for s in sekolah_list %}
-              <option value="{{ s.id }}">{{ s.nama }} — {{ s.kabupaten }} ({{ s.tanggal_kunjungan.strftime('%d-%m-%Y') }})</option>
-            {% endfor %}
-          </select>
+      <!-- Pilih sekolah -->
+      <div class="mb-4">
+        <label class="form-label">Sekolah</label>
+        <select name="sekolah_id" class="form-select" required>
+          <option value="">— Pilih Sekolah —</option>
+          {% for s in sekolah_list %}
+            <option value="{{ s.id }}">{{ s.nama }} — {{ s.kabupaten }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Blok per merek -->
+      {% for brand in brands %}
+        <h5 class="mt-2 mb-3">{{ brand }}</h5>
+
+        <div class="row fw-semibold border-bottom pb-2 mb-2">
+          <div class="col-8">Model</div>
+          <div class="col-4">Jumlah</div>
         </div>
 
-        <!-- Merek -->
-        <div class="col-md-4">
-          <label class="form-label">Merek</label>
-          <select id="merek" name="merek" class="form-select" required>
-            <option value="">— Pilih Merek —</option>
-            {% for b in brands %}
-              <option value="{{ b }}">{{ b }}</option>
-            {% endfor %}
-          </select>
-        </div>
+        {% for model in brand_models[brand] %}
+          <div class="row align-items-center mb-2">
+            <div class="col-8">{{ model }}</div>
+            <div class="col-4">
+              <input type="number"
+                     min="0"
+                     name="{{ brand|lower }}_{{ loop.index0 }}"
+                     class="form-control"
+                     placeholder="0">
+            </div>
+          </div>
+        {% endfor %}
 
-        <!-- Model (tergantung merek) -->
-        <div class="col-md-5">
-          <label class="form-label">Model</label>
-          <select id="model" name="model" class="form-select" required disabled>
-            <option value="">— Pilih Model —</option>
-          </select>
-          <div class="form-text">Model akan muncul sesuai merek yang dipilih.</div>
-        </div>
+        <hr class="my-4">
+      {% endfor %}
 
-        <!-- Jumlah -->
-        <div class="col-md-3">
-          <label class="form-label">Jumlah</label>
-          <input type="number" name="jumlah" min="1" class="form-control" required>
-        </div>
+      <div class="mt-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Simpan & Tampilkan Rekap</button>
+        <a class="btn btn-secondary" href="/dashboard">Kembali ke Dashboard</a>
+      </div>
 
-        <div class="col-12 d-flex gap-2">
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-save2 me-1"></i> Simpan & Tampilkan Rekap
-          </button>
-          <a href="/dashboard" class="btn btn-secondary">
-            <i class="bi bi-arrow-left-short"></i> Kembali ke Dashboard
-          </a>
-        </div>
-      </form>
     </div>
-  </div>
+  </form>
+
 </div>
-
-<script>
-  // data merek -> model dari backend
-  const BRAND_MODELS = {{ brand_models | tojson }};
-  const merekEl = document.getElementById('merek');
-  const modelEl = document.getElementById('model');
-
-  merekEl.addEventListener('change', () => {
-    const brand = merekEl.value;
-    modelEl.innerHTML = '<option value="">— Pilih Model —</option>';
-    if (!brand || !BRAND_MODELS[brand]) { modelEl.disabled = true; return; }
-    BRAND_MODELS[brand].forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m; opt.textContent = m;
-      modelEl.appendChild(opt);
-    });
-    modelEl.disabled = false;
-  });
-</script>
 </body>
 </html>

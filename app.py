@@ -105,41 +105,55 @@ def safety_riding():
 
     if request.method == 'POST':
         sekolah_id = request.form.get('sekolah_id')
-        merek      = request.form.get('merek')
-        model      = request.form.get('model')
-        jumlah_raw = request.form.get('jumlah', '0')
+        if not sekolah_id:
+            return render_template(
+                'safety_riding.html',
+                sekolah_list=sekolah_list,
+                brand_models=BRAND_MODELS,
+                brands=list(BRAND_MODELS.keys()),
+                msg="Pilih sekolah dulu."
+            )
 
-        # Validasi
-        try:
-            jumlah = int(jumlah_raw)
-        except ValueError:
-            jumlah = 0
+        total_disimpan = 0
 
-        if not sekolah_id or merek not in ALLOWED_BRANDS:
-            return "Input tidak valid (sekolah/merek)."
-        if model not in BRAND_MODELS[merek]:
-            return "Model tidak valid untuk merek tersebut."
-        if jumlah < 1:
-            return "Jumlah minimal 1."
+        # Baca semua kolom jumlah: <brand_lower>_<index>
+        for brand, models in BRAND_MODELS.items():
+            slug = brand.lower()  # 'Honda' -> 'honda'
+            for i, model in enumerate(models):
+                raw = request.form.get(f'{slug}_{i}', '').strip()
+                if not raw:
+                    continue
+                try:
+                    jumlah = int(raw)
+                except ValueError:
+                    jumlah = 0
+                if jumlah > 0:
+                    db.session.add(MotorParkir(
+                        sekolah_id=int(sekolah_id),
+                        merek=brand,
+                        model=model,
+                        jumlah=jumlah
+                    ))
+                    total_disimpan += jumlah
 
-        # Simpan
-        db.session.add(MotorParkir(
-            sekolah_id=int(sekolah_id),
-            merek=merek,
-            model=model,
-            jumlah=jumlah
-        ))
+        if total_disimpan == 0:
+            return render_template(
+                'safety_riding.html',
+                sekolah_list=sekolah_list,
+                brand_models=BRAND_MODELS,
+                brands=list(BRAND_MODELS.keys()),
+                msg="Belum ada jumlah yang diisi (semua kosong/0)."
+            )
+
         db.session.commit()
-
-        # Lihat rekap sekolah yang dipilih
         return redirect(url_for('lihat_sekolah', sekolah_id=sekolah_id))
 
-    # GET: tampilkan form input
+    # GET
     return render_template(
         'safety_riding.html',
         sekolah_list=sekolah_list,
-        brands=list(BRAND_MODELS.keys()),
-        brand_models=BRAND_MODELS
+        brand_models=BRAND_MODELS,
+        brands=list(BRAND_MODELS.keys())
     )
 
 # ==========================
