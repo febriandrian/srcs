@@ -93,6 +93,25 @@ def dashboard():
 # ==========================
 # SEKOLAH - LIST & TAMBAH
 # ==========================
+@app.route('/safety-riding/sekolah/<int:sekolah_id>')
+def lihat_sekolah(sekolah_id):
+    sekolah = Sekolah.query.get_or_404(sekolah_id)
+    return render_template('lihat_sekolah.html', sekolah=sekolah)
+
+@app.route('/safety-riding/sekolah/edit/<int:sekolah_id>', methods=['GET', 'POST'])
+def edit_sekolah(sekolah_id):
+    sekolah = Sekolah.query.get_or_404(sekolah_id)
+
+    if request.method == 'POST':
+        sekolah.nama = request.form['nama']
+        sekolah.kabupaten = request.form['kabupaten']
+        sekolah.tanggal_kunjungan = datetime.strptime(request.form['tanggal_kunjungan'], '%Y-%m-%d').date()
+
+        db.session.commit()
+        return redirect('/safety-riding/sekolah')
+
+    return render_template('edit_sekolah.html', sekolah=sekolah)
+
 @app.route('/safety-riding/sekolah')
 def list_sekolah():
     if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
@@ -100,8 +119,16 @@ def list_sekolah():
 
     sekolah_list = Sekolah.query.all()
     return render_template('list_sekolah.html', sekolah_list=sekolah_list)
-@app.route('/safety-riding/sekolah/hapus/<int:id>', methods=['POST'])
-def hapus_sekolah(id):
+@app.route('/safety-riding/sekolah/hapus/<int:sekolah_id>', methods=['POST'])
+def hapus_sekolah(sekolah_id):
+    sekolah = Sekolah.query.get_or_404(sekolah_id)
+    db.session.delete(sekolah)
+    db.session.commit()
+    return redirect(url_for('list_sekolah'))
+
+
+
+
     if 'role' not in session or session['role'] not in ['PetugasSR', 'Admin']:
         return "Akses ditolak"
 
